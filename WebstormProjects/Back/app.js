@@ -1,11 +1,16 @@
 const express = require('express');
 const app = express();
-const port = 8080;
-
+const port = 3000;
+const cors = require('cors');
+app.use(cors());
 app.use(express.json());
 
-let todos = [];
-let nextId = 1;
+let todos = [
+    { id: 1, text: 'Learn React', done: true },
+    { id: 2, text: 'Learn TypeScript', done: true },
+    { id: 3, text: 'Build a TO DO List', done: true },
+];
+let nextId = 4;
 
 // GET: Retrieve all TO-DO items
 app.get('/todos', (req, res) => {
@@ -28,6 +33,9 @@ app.put('/todos/:id', (req, res) => {
     const todo = todos.find(t => t.id === id);
     if (todo) {
         todo.text = req.body.text;
+        if (req.body.hasOwnProperty('done')) {
+            todo.done = req.body.done;
+        }
         res.json(todo);
     } else {
         res.status(404).send('TO-DO item not found');
