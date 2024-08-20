@@ -1,9 +1,10 @@
 const express = require('express');
+const cors = require('cors');
+const { PrismaClient } = require('@prisma/client');
+
 const app = express();
 const port = 3000;
-const cors = require('cors');
-app.use(cors());
-app.use(express.json());
+const prisma = new PrismaClient();
 
 let todos = [
     { id: 1, text: 'Learn React', done: true },
@@ -12,46 +13,50 @@ let todos = [
 ];
 let nextId = 4;
 
+app.use(cors());
+app.use(express.json());
+
 // GET: Retrieve all TO-DO items
-app.get('/todos', (req, res) => {
+app.get('/todos', async (req, res) => {
+    const todos = await prisma.task.findMany();
     res.json(todos);
 });
 
 // POST: Add a new TO-DO item
-app.post('/todos', (req, res) => {
-    const newTodo = {
-        id: nextId++,
-        text: req.body.text
-    };
-    todos.push(newTodo);
+app.post('/todos', async (req, res) => {
+    const newTodo = await prisma.task.create({
+        data: {
+            text: req.body.text,
+            done: false,
+        },
+    });
     res.status(201).json(newTodo);
 });
 
 // PUT: Edit an existing TO-DO item
-app.put('/todos/:id', (req, res) => {
+app.put('/todos/:id', async (req, res) => {
     const id = parseInt(req.params.id);
-    const todo = todos.find(t => t.id === id);
-    if (todo) {
-        todo.text = req.body.text;
-        if (req.body.hasOwnProperty('done')) {
-            todo.done = req.body.done;
-        }
-        res.json(todo);
-    } else {
+    try {
+        const updatedTodo = await prisma.task.update({
+            where: { id: id },
+            data: {
+                text: req.body.text,
+                done: req.body.done,
+            },
+        });
+        res.json(updatedTodo);
+    } catch (error) {
         res.status(404).send('TO-DO item not found');
     }
 });
 
 // DELETE: Delete a TO-DO item
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', async (req, res) => {
     const id = parseInt(req.params.id);
-    const index = todos.findIndex(t => t.id === id);
-    if (index !== -1) {
-        const deletedTodo = todos.splice(index, 1);
-        res.json(deletedTodo);
-    } else {
-        res.status(404).send('TO-DO item not found');
-    }
+    const deletedTodo = await prisma.task.delete({
+        where: { id: id },
+    });
+    res.json(deletedTodo);
 });
 
 app.listen(port, () => {
